@@ -1,7 +1,5 @@
 use git2::Repository;
-use std::ffi::OsStr;
 use std::fs;
-use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
@@ -35,7 +33,7 @@ pub fn tracked_files(
         .to_path_buf();
 
     for entry in repo.index()?.iter() {
-        let path = PathBuf::from(OsStr::from_bytes(&entry.path[..]));
+        let path = PathBuf::from(std::str::from_utf8(&entry.path[..])?);
 
         if let Some(subdir) = subdir {
             if !path.starts_with(subdir) {
