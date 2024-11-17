@@ -35,6 +35,9 @@ fn main() -> types::Result<()> {
     let mut skipped_files = Vec::new();
     let mut formatted_files = Vec::new();
 
+    let mut total_lines = 0;
+    let mut total_bytes = 0;
+
     for (path, _modified_time) in &tracked {
         if let Some(pattern) = ignore_patterns.iter().find(|&p| {
             let glob = Glob::new(p).unwrap();
@@ -48,7 +51,11 @@ fn main() -> types::Result<()> {
         }
 
         match format_file(repo_root, path) {
-            Ok(formatted) => formatted_files.push(formatted),
+            Ok(formatted) => {
+                total_lines += formatted.content.lines().count();
+                total_bytes += formatted.content.len();
+                formatted_files.push(formatted);
+            }
             Err(reason) => skipped_files.push(SkippedFile {
                 path: path.clone(),
                 reason,
@@ -64,7 +71,9 @@ fn main() -> types::Result<()> {
         &skipped_files,
     );
 
+    eprintln!("Exporting {} lines ({} bytes)", total_lines, total_bytes);
     println!("{}", full_output);
+
     io::stdout().flush()?;
     Ok(())
 }
