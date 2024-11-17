@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on tags like v1.0.0
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        target: [ "x86_64-unknown-linux-gnu", "x86_64-pc-windows-gnu" ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          profile: minimal
+          override: true
+
+      - name: Cache Cargo registry and build
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential
+
+      - name: Build
+        run: |
+          if [ "${{ matrix.target }}" == "x86_64-pc-windows-gnu" ]; then
+            export RUSTFLAGS="-C target-feature=+crt-static"
+          fi
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: llmexport-${{ matrix.target }}
+          path: |
+            target/${{ matrix.target }}/release/llmexport${{ matrix.target == 'x86_64-pc-windows-gnu' && '.exe' || '' }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download Linux Binary
+        uses: actions/download-artifact@v3
+        with:
+          name: llmexport-x86_64-unknown-linux-gnu
+          path: ./linux
+
+      - name: Download Windows Binary
+        uses: actions/download-artifact@v3
+        with:
+          name: llmexport-x86_64-pc-windows-gnu
+          path: ./windows
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Linux Binary to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./linux/release/llmexport
+          asset_name: llmexport-linux
+          asset_content_type: application/octet-stream
+
+      - name: Upload Windows Binary to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./windows/release/llmexport.exe
+          asset_name: llmexport-windows.exe
+          asset_content_type: application/octet-stream
+
