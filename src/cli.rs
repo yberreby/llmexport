@@ -11,7 +11,7 @@ pub struct Cli {
     #[arg(value_name = "DIR")]
     pub directory: Option<PathBuf>,
 
-    #[arg(short, long, default_value_t = 5)]
+    #[arg(short, long, default_value_t = 25)]
     pub commits: usize,
 
     #[arg(short, long, value_delimiter = ',')]
