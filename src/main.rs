@@ -23,7 +23,7 @@ fn build_glob_set(patterns: &[&str]) -> Result<GlobSet> {
 fn main() -> types::Result<()> {
     let cli = Cli::parse();
 
-    let mut ignore_patterns = vec!["*.lock", "*.log", "**/*.csv", "**/*.mat"];
+    let mut ignore_patterns = vec!["LICENSE*", "*.lock", "*.log", "**/*.csv", "**/*.mat"];
     ignore_patterns.extend(cli.ignore.iter().map(|s| s.as_str()));
     let _glob_set = build_glob_set(&ignore_patterns)?;
 
