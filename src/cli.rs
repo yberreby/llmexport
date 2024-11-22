@@ -8,8 +8,8 @@ use std::path::PathBuf;
     about = "Collect and format repository files for LLM consumption"
 )]
 pub struct Cli {
-    #[arg(value_name = "DIR")]
-    pub directory: Option<PathBuf>,
+    #[arg(value_name = "PATHS")]
+    pub paths: Vec<PathBuf>,
 
     #[arg(short, long, default_value_t = 25)]
     pub commits: usize,

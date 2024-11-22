@@ -1,16 +1,19 @@
 use clap::Parser;
 use git2::Repository;
 use globset::{Glob, GlobSet, GlobSetBuilder};
+use std::collections::HashSet;
 use std::io::{self, Write};
+use std::path::Path;
+
+mod cli;
+mod format;
+mod read;
+mod types;
 
 use cli::Cli;
 use format::*;
 use read::*;
 use types::*;
-mod cli;
-mod format;
-mod read;
-mod types;
 
 fn build_glob_set(patterns: &[&str]) -> Result<GlobSet> {
     let mut builder = GlobSetBuilder::new();
@@ -30,7 +33,16 @@ fn main() -> types::Result<()> {
     let repo = Repository::discover(".")?;
     let repo_root = repo.workdir().ok_or("Not a working directory")?;
     let recent_commits = get_recent_commits(&repo, cli.commits)?;
-    let tracked = tracked_files(&repo, cli.directory.as_deref())?;
+
+    // If no paths are specified, use the repository root
+    let paths = if cli.paths.is_empty() {
+        vec![repo_root.to_path_buf()]
+    } else {
+        cli.paths.clone()
+    };
+
+    // Get all tracked files that match any of the input paths
+    let tracked = tracked_files_multiple(&repo, &paths)?;
 
     let mut skipped_files = Vec::new();
     let mut formatted_files = Vec::new();
