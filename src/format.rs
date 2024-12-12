@@ -64,7 +64,7 @@ pub fn format_file(
     let formatted_content = lines
         .into_iter()
         .enumerate()
-        .map(|(i, line)| format!("{:>width$} │ {}", i + 1, line, width = max_line_num_width))
+        .map(|(i, line)| format!("{}", line))
         .collect::<Vec<_>>()
         .join("\n");
 
